@@ -288,7 +288,7 @@ class BlumTod:
         try:
 
             self.AUTOGAME = input(f"{magenta}Играть в игру? {putih}(1 - Да, 2 - Нет)\n")
-            self.DEFAULT_INTERVAL = 3                  # 3 секунды между аккаунтами
+            self.DEFAULT_INTERVAL = int(input(f"{magenta}Перерыв между аккаунтами в секундах: \n"))
             if self.AUTOGAME=='1':
                 self.MIN_WIN = int(input(f"{magenta}Введите минимальное значение очков с игры: \n"))
                 self.MAX_WIN = int(input(f"{magenta}Введите максимальное значение очков с игры: \n"))
