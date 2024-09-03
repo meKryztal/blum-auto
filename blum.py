@@ -87,13 +87,14 @@ class BlumTod:
                     url_claim = (
                         f"https://game-domain.blum.codes/api/v1/tasks/{task_id}/claim"
                     )
-                    res = self.http(url_claim, headers, "")
+                    res2 = self.http(url_claim, headers, "")
+
                     if "message" in res.text:
                         continue
 
-                    status = res.json().get("status")
-                    if status == "CLAIMED":
-                        self.log(f"{hijau}Выполнил задание {task_title} !")
+                    status = res2.json().get("status")
+                    if status == "FINISHED":
+                        self.log(f"{hijau}Выполнил задание {task_title} ")
                         continue
 
     def set_proxy(self, proxy=None):
