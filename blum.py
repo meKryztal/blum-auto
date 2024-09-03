@@ -285,7 +285,7 @@ class BlumTod:
 
     def load_config(self):
         try:
-            self.AUTOTASK = input(f"{magenta}Выполнять задания? {putih}(1 - Да, 2 - Нет)\n")
+
             self.AUTOGAME = input(f"{magenta}Играть в игру? {putih}(1 - Да, 2 - Нет)\n")
             self.DEFAULT_INTERVAL = 3                  # 3 секунды между аккаунтами
             if self.AUTOGAME=='1':
@@ -405,8 +405,7 @@ class BlumTod:
                     continue
                 self.checkin(access_token)
                 self.get_friend(access_token)
-                if self.AUTOTASK=='1':
-                    self.solve_task(access_token)
+                self.solve_task(access_token)
                 status, res_bal = self.get_balance(access_token)
                 if status:
                     self.claim_farming(access_token)
