@@ -66,7 +66,7 @@ https://telegra.ph/Avtoklikker-dlya-BLUM-GAJD-05-29
    
 
 
-## Вставить в файл init_data ключи такого вида, каждый новый ключ с новой строки:
+## Вставить в файл data ключи такого вида, каждый новый ключ с новой строки:
    ```
    query_id=xxxxxxxxxx&user=xxxxxxfirst_namexxxxxlast_namexxxxxxxusernamexxxxxxxlanguage_codexxxxxxxallows_write_to_pmxxxxxxx&auth_date=xxxxxx&hash=xxxxxxx
    query_id=xxxxxxxxxx&user=xxxxxxfirst_namexxxxxlast_namexxxxxxxusernamexxxxxxxlanguage_codexxxxxxxallows_write_to_pmxxxxxxx&auth_date=xxxxxx&hash=xxxxxxx
