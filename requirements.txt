@@ -1,3 +1,4 @@
 requests
 requests[socks]
 colorama
+fake_useragent
