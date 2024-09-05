@@ -382,7 +382,7 @@ class BlumTod:
                 data_parse = self.data_parsing(data)
                 user = json.loads(data_parse["user"])
                 userid = user["id"]
-                self.log(f"{hijau}Аккаунт : {putih}{user['username']}")
+                self.log(f"{hijau}Аккаунт : {putih}{user['first_name']}")
                 if use_proxy:
                     proxy = proxies[no % len(proxies)]
                 self.set_proxy(proxy if use_proxy else None)
