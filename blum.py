@@ -74,10 +74,14 @@ class BlumTod:
         ]
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        res = self.http(url_task, headers)
-        self.log(
-            f"{hijau}Проверяю задания "
-        )
+        try:
+            res = self.http(url_task, headers)
+            self.log(
+                f"{hijau}Проверяю задания "
+            )
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
+
         for tasks in res.json():
             if isinstance(tasks, str):
                 self.log(f"{kuning}Ошибка получения списка заданий")
@@ -94,25 +98,33 @@ class BlumTod:
                         if task_id in ignore_tasks:
                             continue
                         if task_status == "READY_FOR_CLAIM":
-                            _res = self.http(claim_task_url, headers, "")
-                            _status = _res.json().get("status")
-                            if _status == "FINISHED":
-                                self.log(
-                                    f"{hijau}Выполнил задание {putih}{task_title} "
-                                )
-                                continue
+                            try:
+                                _res = self.http(claim_task_url, headers, "")
 
-                        _res = self.http(start_task_url, headers, "")
-                        self.countdown(1)
-                        _status = _res.json().get("status")
-                        if _status == "STARTED":
-                            _res = self.http(claim_task_url, headers, "")
+                                _status = _res.json().get("status")
+
+                                if _status == "FINISHED":
+                                    self.log(
+                                        f"{hijau}Выполнил задание {putih}{task_title} "
+                                    )
+                                    continue
+                            except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+                                self.log(f"{merah}Ошибка чтения ответа, повторяю")
+
+                        try:
+                            _res = self.http(start_task_url, headers, "")
+                            self.countdown(1)
                             _status = _res.json().get("status")
-                            if _status == "FINISHED":
-                                self.log(
-                                    f"{hijau}Выполнил задание {putih}{task_title} "
-                                )
-                                continue
+                            if _status == "STARTED":
+                                _res = self.http(claim_task_url, headers, "")
+                                _status = _res.json().get("status")
+                                if _status == "FINISHED":
+                                    self.log(
+                                        f"{hijau}Выполнил задание {putih}{task_title} "
+                                    )
+                                    continue
+                        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+                            self.log(f"{merah}Ошибка чтения ответа, повторяю")
 
     def set_proxy(self, proxy=None):
         self.ses = requests.Session()
@@ -123,140 +135,160 @@ class BlumTod:
         url = "https://game-domain.blum.codes/api/v1/farming/claim"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        res = self.http(url, headers, "")
-        balance = res.json().get("availableBalance", 0)
-        self.log(f"{hijau}Баланс после клейма : {putih}{balance}")
-        return
+        try:
+            res = self.http(url, headers, "")
+            balance = res.json().get("availableBalance", 0)
+            self.log(f"{hijau}Баланс после клейма : {putih}{balance}")
+            return
 
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
     def get_balance(self, access_token, only_show_balance=False):
         url = "https://game-domain.blum.codes/api/v1/user/balance"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        while True:
-            res = self.http(url, headers)
-            balance = res.json().get("availableBalance", 0)
-            self.log(f"{hijau}Баланс : {putih}{balance}")
-            if only_show_balance:
-                return
-            timestamp = res.json().get("timestamp")
-            if timestamp is None:
-                self.countdown(3)
-                continue
-            timestamp = round(timestamp / 1000)
-            if "farming" not in res.json().keys():
-                return False, "not_started"
-            end_farming = res.json().get("farming", {}).get("endTime")
-            if end_farming is None:
-                self.countdown(3)
-                continue
-            break
-        end_farming = round(end_farming / 1000)
-        if timestamp > end_farming:
-            self.log(f"{hijau}Пришло время для клейма")
-            return True, end_farming
+        try:
+            while True:
+                res = self.http(url, headers)
+                balance = res.json().get("availableBalance", 0)
+                self.log(f"{hijau}Баланс : {putih}{balance}")
+                if only_show_balance:
+                    return
+                timestamp = res.json().get("timestamp")
+                if timestamp is None:
+                    self.countdown(3)
+                    continue
+                timestamp = round(timestamp / 1000)
+                if "farming" not in res.json().keys():
+                    return False, "not_started"
+                end_farming = res.json().get("farming", {}).get("endTime")
+                if end_farming is None:
+                    self.countdown(3)
+                    continue
+                break
+            end_farming = round(end_farming / 1000)
+            if timestamp > end_farming:
+                self.log(f"{hijau}Пришло время для клейма")
+                return True, end_farming
 
-        self.log(f"{kuning}Еще не пришло время для клейма")
-        end_date = datetime.fromtimestamp(end_farming)
-        self.log(f"{hijau}Конец фарминга : {putih}{end_date}")
-        return False, end_farming
+            self.log(f"{kuning}Еще не пришло время для клейма")
+            end_date = datetime.fromtimestamp(end_farming)
+            self.log(f"{hijau}Конец фарминга : {putih}{end_date}")
+            return False, end_farming
+
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
+
 
     def start_farming(self, access_token):
         url = "https://game-domain.blum.codes/api/v1/farming/start"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        while True:
-            res = self.http(url, headers, "")
-            end = res.json().get("endTime")
-            if end is None:
-                self.countdown(3)
-                continue
-            break
+        try:
+            while True:
+                res = self.http(url, headers, "")
+                end = res.json().get("endTime")
+                if end is None:
+                    self.countdown(3)
+                    continue
+                break
 
-        end_date = datetime.fromtimestamp(end / 1000)
-        self.log(f"{hijau}Запустил фарминг")
-        self.log(f"{hijau}Конец фарминга : {putih}{end_date}")
-        return round(end / 1000)
+            end_date = datetime.fromtimestamp(end / 1000)
+            self.log(f"{hijau}Запустил фарминг")
+            self.log(f"{hijau}Конец фарминга : {putih}{end_date}")
+            return round(end / 1000)
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
 
     def get_friend(self, access_token):
         url = "https://user-domain.blum.codes/api/v1/friends/balance"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        res = self.http(url, headers)
-        can_claim = res.json().get("canClaim", False)
+        try:
+            res = self.http(url, headers)
+            can_claim = res.json().get("canClaim", False)
 
-        if can_claim:
-            url_claim = "https://user-domain.blum.codes/api/v1/friends/claim"
-            res = self.http(url_claim, headers, "")
-            if res.json().get("claimBalance") is not None:
-                self.log(f"{hijau}Заклеймил рефералку")
+            if can_claim:
+                url_claim = "https://user-domain.blum.codes/api/v1/friends/claim"
+                res = self.http(url_claim, headers, "")
+                if res.json().get("claimBalance") is not None:
+                    self.log(f"{hijau}Заклеймил рефералку")
+                    return
+                self.log(f"{merah}Ошибка клейма рефералки")
                 return
-            self.log(f"{merah}Ошибка клейма рефералки")
-            return
 
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
     def checkin(self, access_token):
         url = "https://game-domain.blum.codes/api/v1/daily-reward?offset=-420"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        res = self.http(url, headers)
-        if res.status_code == 404:
-            self.log(f"{kuning}Уже делал чекин сегодня")
-            return
-        res = self.http(url, headers, "")
-        if "ok" in res.text.lower():
-            self.log(f"{hijau}Сделал чекин")
+        try:
+            res = self.http(url, headers)
+            if res.status_code == 404:
+                self.log(f"{kuning}Уже делал чекин сегодня")
+                return
+            res = self.http(url, headers, "")
+            if "ok" in res.text.lower():
+                self.log(f"{hijau}Сделал чекин")
+                return
+
+            self.log(f"{merah}Ошибка чекина")
             return
 
-        self.log(f"{merah}Ошибка чекина")
-        return
-
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
     def playgame(self, access_token):
         url_play = "https://game-domain.blum.codes/api/v1/game/play"
         url_claim = "https://game-domain.blum.codes/api/v1/game/claim"
         url_balance = "https://game-domain.blum.codes/api/v1/user/balance"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        while True:
-            res = self.http(url_balance, headers)
-            play = res.json().get("playPasses")
-            if play is None:
-                self.log(f"{kuning}Ошибка получения количества билетов")
-                break
-            self.log(f"{hijau}Билеты: {putih}{play}{hijau} шт")
-            if play <= 0:
-                return
-            for i in range(play):
-                if self.is_expired(access_token):
-                    return True
-                res = self.http(url_play, headers, "")
-                game_id = res.json().get("gameId")
-                if game_id is None:
-                    message = res.json().get("message", "")
-                    if message == "cannot start game":
-                        self.log(
-                            f"{kuning}{message}, попробую позже"
-                        )
-                        return False
-                    self.log(f"{kuning}{message}")
-                    continue
-                while True:
-                    self.countdown(30)
-                    point = random.randint(self.MIN_WIN, self.MAX_WIN)
-                    data = json.dumps({"gameId": game_id, "points": point})
-                    res = self.http(url_claim, headers, data)
-                    if "OK" in res.text:
-                        self.log(
-                            f"{hijau}Получил {putih}{point}{hijau} с игры !"
-                        )
+        try:
+            while True:
+                res = self.http(url_balance, headers)
+                play = res.json().get("playPasses")
+                if play is None:
+                    self.log(f"{kuning}Ошибка получения количества билетов")
+                    break
+                self.log(f"{hijau}Билеты: {putih}{play}{hijau} шт")
+                if play <= 0:
+                    return
+                for i in range(play):
+                    if self.is_expired(access_token):
+                        return True
+                    res = self.http(url_play, headers, "")
+                    game_id = res.json().get("gameId")
+                    if game_id is None:
+                        message = res.json().get("message", "")
+                        if message == "cannot start game":
+                            self.log(
+                                f"{kuning}{message}, попробую позже"
+                            )
+                            return False
+                        self.log(f"{kuning}{message}")
+                        continue
+                    while True:
+                        self.countdown(30)
+                        point = random.randint(self.MIN_WIN, self.MAX_WIN)
+                        data = json.dumps({"gameId": game_id, "points": point})
+                        res = self.http(url_claim, headers, data)
+                        if "OK" in res.text:
+                            self.log(
+                                f"{hijau}Получил {putih}{point}{hijau} с игры "
+                            )
 
+                            break
+
+                        message = res.json().get("message", "")
+                        if message == "game session not finished":
+                            continue
+
+                        self.log(f"{merah}Ошибка получения {putih}{point}{merah} с игры ")
                         break
 
-                    message = res.json().get("message", "")
-                    if message == "game session not finished":
-                        continue
-
-                    self.log(f"{merah}Ошибка получения {putih}{point}{merah} с игры !")
-                    break
-
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
     def data_parsing(self, data):
         return {k: v[0] for k, v in parse_qs(data).items()}
 
@@ -355,6 +387,9 @@ class BlumTod:
                 self.log(f"{merah}Ошибка прокси, проверь формат")
                 return False
 
+
+            except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+                self.log(f"{merah}Ошибка чтения ответа, повторяю")
     def countdown(self, t):
         while t:
             menit, detik = divmod(t, 60)
