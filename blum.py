@@ -64,38 +64,55 @@ class BlumTod:
 
     def solve_task(self, access_token):
         url_task = "https://game-domain.blum.codes/api/v1/tasks"
+        ignore_tasks = [
+            "39391eb2-f031-4954-bd8a-e7aecbb1f192",  # wallet connect
+            "d3716390-ce5b-4c26-b82e-e45ea7eba258",  # invite task
+            "f382ec3f-089d-46de-b921-b92adfd3327a", # invite task
+            "220ee7b1-cca4-4af8-838a-2001cb42b813", # invite task
+            "5ecf9c15-d477-420b-badf-058537489524", # invite task
+            "c4e04f2e-bbf5-4e31-917b-8bfa7c4aa3aa" # invite task
+        ]
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
         res = self.http(url_task, headers)
+        self.log(
+            f"{hijau}Проверяю задания "
+        )
         for tasks in res.json():
             if isinstance(tasks, str):
                 self.log(f"{kuning}Ошибка получения списка заданий")
                 return
-            for task in tasks.get("tasks"):
-                # print(task)
-                task_id = task.get("id")
-                task_title = task.get("title")
-                task_status = task.get("status")
-                if task_status == "NOT_STARTED":
-                    url_start = (
-                        f"https://game-domain.blum.codes/api/v1/tasks/{task_id}/start"
-                    )
-                    res = self.http(url_start, headers, "")
-                    if "message" in res.text:
-                        continue
+            for k in list(tasks.keys()):
+                for t in tasks.get(k):
+                    for task in t.get("tasks"):
 
-                    url_claim = (
-                        f"https://game-domain.blum.codes/api/v1/tasks/{task_id}/claim"
-                    )
-                    res2 = self.http(url_claim, headers, "")
+                        task_id = task.get("id")
+                        task_title = task.get("title")
+                        task_status = task.get("status")
+                        start_task_url = f"https://game-domain.blum.codes/api/v1/tasks/{task_id}/start"
+                        claim_task_url = f"https://game-domain.blum.codes/api/v1/tasks/{task_id}/claim"
+                        if task_id in ignore_tasks:
+                            continue
+                        if task_status == "READY_FOR_CLAIM":
+                            _res = self.http(claim_task_url, headers, "")
+                            _status = _res.json().get("status")
+                            if _status == "FINISHED":
+                                self.log(
+                                    f"{hijau}Выполнил задание {putih}{task_title} "
+                                )
+                                continue
 
-                    if "message" in res.text:
-                        continue
-
-                    status = res2.json().get("status")
-                    if status == "FINISHED":
-                        self.log(f"{hijau}Выполнил задание {task_title} ")
-                        continue
+                        _res = self.http(start_task_url, headers, "")
+                        self.countdown(1)
+                        _status = _res.json().get("status")
+                        if _status == "STARTED":
+                            _res = self.http(claim_task_url, headers, "")
+                            _status = _res.json().get("status")
+                            if _status == "FINISHED":
+                                self.log(
+                                    f"{hijau}Выполнил задание {putih}{task_title} "
+                                )
+                                continue
 
     def set_proxy(self, proxy=None):
         self.ses = requests.Session()
@@ -161,14 +178,14 @@ class BlumTod:
         return round(end / 1000)
 
     def get_friend(self, access_token):
-        url = "https://gateway.blum.codes/v1/friends/balance"
+        url = "https://user-domain.blum.codes/api/v1/friends/balance"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
         res = self.http(url, headers)
         can_claim = res.json().get("canClaim", False)
 
         if can_claim:
-            url_claim = "https://gateway.blum.codes/v1/friends/claim"
+            url_claim = "https://user-domain.blum.codes/api/v1/friends/claim"
             res = self.http(url_claim, headers, "")
             if res.json().get("claimBalance") is not None:
                 self.log(f"{hijau}Заклеймил рефералку")
@@ -262,7 +279,8 @@ class BlumTod:
         open("tokens.json", "w").write(json.dumps(tokens, indent=4))
 
     def is_expired(self, token):
-
+        if token is None or isinstance(token,bool):
+            return True
         header, payload, sign = token.split(".")
         payload = b64decode(payload + "==").decode()
         jload = json.loads(payload)
@@ -311,7 +329,7 @@ class BlumTod:
             return False
         city = res.json().get("city")
         country = res.json().get("country")
-        region = res.json().get("region")
+
         self.log(
             f"{biru}Проверка прокси: {hijau}Страна : {putih}{country} {hijau}Город : {putih}{city}"
         )
