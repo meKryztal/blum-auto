@@ -83,7 +83,8 @@ class BlumTod:
             restask = res.json()
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
-
+            return
+            
         for tasks in restask:
             if isinstance(tasks, str):
                 self.log(f"{kuning}Ошибка получения списка заданий")
