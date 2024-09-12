@@ -79,10 +79,11 @@ class BlumTod:
             self.log(
                 f"{hijau}Проверяю задания "
             )
+            restask = res.json()
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
 
-        for tasks in res.json():
+        for tasks in restask:
             if isinstance(tasks, str):
                 self.log(f"{kuning}Ошибка получения списка заданий")
                 return
