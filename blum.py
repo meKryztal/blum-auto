@@ -10,7 +10,7 @@ from datetime import datetime
 from colorama import *
 from urllib.parse import parse_qs
 from base64 import b64decode
-from fake_useragent import UserAgent
+
 
 init(autoreset=True)
 
@@ -28,7 +28,7 @@ class BlumTod:
     def __init__(self):
         self.base_headers = {
             "accept": "application/json, text/plain, */*",
-            "user-agent": UserAgent(os='android').random,
+            "user-agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
             "content-type": "application/json",
             "origin": "https://telegram.blum.codes",
             "x-requested-with": "org.telegram.messenger",
