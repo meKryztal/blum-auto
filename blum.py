@@ -74,6 +74,7 @@ class BlumTod:
         ]
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
+        restask = [] 
         try:
             res = self.http(url_task, headers)
             self.log(
