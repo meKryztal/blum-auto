@@ -51,6 +51,7 @@ class BlumTod:
         )
         headers["Content-Length"] = str(len(data))
         url = "https://user-domain.blum.codes/api/v1/auth/provider/PROVIDER_TELEGRAM_MINI_APP"
+        time.sleep(3)
         res = self.http(url, headers, data)
         token = res.json().get("token")
         if token is None:
@@ -75,12 +76,14 @@ class BlumTod:
         task_id = task.get("id")
         task_title = task.get("title")
         task_status = task.get("status")
+        task_prog = task.get('type')
         start_task_url = f"https://earn-domain.blum.codes/api/v1/tasks/{task_id}/start"
         claim_task_url = f"https://earn-domain.blum.codes/api/v1/tasks/{task_id}/claim"
         if task_id in ignore_tasks:
             return
         if task_status == "READY_FOR_CLAIM":
             try:
+                time.sleep(3)
                 _res = self.http(claim_task_url, headers, "")
 
                 _status = _res.json().get("status")
@@ -93,27 +96,32 @@ class BlumTod:
             except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
                 self.log(f"{merah}Ошибка чтения ответа, повторяю")
                 return
-        try:
-            _res = self.http(start_task_url, headers, "")
-            self.countdown(1)
-            _status = _res.json().get("status")
-            if _status == "STARTED":
-                _res = self.http(claim_task_url, headers, "")
+
+        if task_status == "NOT_STARTED" and task_prog != "PROGRESS_TARGET":
+            try:
+                time.sleep(3)
+                _res = self.http(start_task_url, headers, "")
+
                 _status = _res.json().get("status")
-                if _status == "FINISHED":
-                    self.log(
-                        f"{hijau}Выполнил задание {putih}{task_title} "
-                    )
-                    return
-        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
-            self.log(f"{merah}Ошибка чтения ответа, повторяю")
-            return
+                if _status == "STARTED":
+                    time.sleep(3)
+                    _res = self.http(claim_task_url, headers, "")
+                    _status = _res.json().get("status")
+                    if _status == "FINISHED":
+                        self.log(
+                            f"{hijau}Выполнил задание {putih}{task_title} "
+                        )
+                        return
+            except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+                self.log(f"{merah}Ошибка чтения ответа, повторяю")
+                return
     def solve_task(self, access_token):
         url_task = "https://earn-domain.blum.codes/api/v1/tasks"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
 
         try:
+            time.sleep(3)
             res = self.http(url_task, headers)
             self.log(
                 f"{hijau}Проверяю задания "
@@ -139,8 +147,11 @@ class BlumTod:
                                 self.solve(task, access_token)
                             self.solve(t, access_token)
                             continue
-                    for task in t.get("tasks"):
-                        self.solve(task, access_token)
+                        if t and t.get("tasks"):
+                            for task in t.get("tasks"):
+                                self.solve(task, access_token)
+                        else:
+                            self.log(f"{kuning}Ошибка получения списка заданий")
 
 
 
@@ -154,6 +165,7 @@ class BlumTod:
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
         try:
+            time.sleep(3)
             res = self.http(url, headers, "")
             balance = res.json().get("availableBalance", 0)
             self.log(f"{hijau}Баланс после клейма : {putih}{balance}")
@@ -169,6 +181,7 @@ class BlumTod:
         headers["Authorization"] = f"Bearer {access_token}"
         try:
             while True:
+                time.sleep(3)
                 res = self.http(url, headers)
                 balance = res.json().get("availableBalance", 0)
                 self.log(f"{hijau}Баланс : {putih}{balance}")
@@ -206,6 +219,7 @@ class BlumTod:
         headers["Authorization"] = f"Bearer {access_token}"
         try:
             while True:
+                time.sleep(3)
                 res = self.http(url, headers, "")
                 end = res.json().get("endTime")
                 if end is None:
@@ -226,11 +240,13 @@ class BlumTod:
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
         try:
+            time.sleep(3)
             res = self.http(url, headers)
             can_claim = res.json().get("canClaim", False)
 
             if can_claim:
                 url_claim = "https://user-domain.blum.codes/api/v1/friends/claim"
+                time.sleep(3)
                 res = self.http(url_claim, headers, "")
                 if res.json().get("claimBalance") is not None:
                     self.log(f"{hijau}Заклеймил рефералку")
@@ -247,6 +263,7 @@ class BlumTod:
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
         try:
+            time.sleep(3)
             res = self.http(url, headers)
             if res.status_code == 404:
                 self.log(f"{kuning}Уже делал чекин сегодня")
@@ -271,6 +288,7 @@ class BlumTod:
         headers["Authorization"] = f"Bearer {access_token}"
         try:
             while True:
+                time.sleep(3)
                 res = self.http(url_balance, headers)
                 play = res.json().get("playPasses")
                 if play is None:
@@ -282,6 +300,7 @@ class BlumTod:
                 for i in range(play):
                     if self.is_expired(access_token):
                         return True
+                    time.sleep(3)
                     res = self.http(url_play, headers, "")
                     game_id = res.json().get("gameId")
                     if game_id is None:
@@ -297,6 +316,7 @@ class BlumTod:
                         self.countdown(30)
                         point = random.randint(self.MIN_WIN, self.MAX_WIN)
                         data = json.dumps({"gameId": game_id, "points": point})
+                        time.sleep(3)
                         res = self.http(url_claim, headers, data)
                         if "OK" in res.text:
                             self.log(
@@ -493,10 +513,9 @@ class BlumTod:
                 status, res_bal = self.get_balance(access_token)
                 if status:
                     self.claim_farming(access_token)
-                    res_bal = self.start_farming(access_token)
+                    self.start_farming(access_token)
                 if isinstance(res_bal, str):
-                    res_bal = self.start_farming(access_token)
-                list_countdown.append(res_bal)
+                    self.start_farming(access_token)
                 if self.AUTOGAME == '1':
                     while True:
                         result = self.playgame(access_token)
@@ -507,13 +526,9 @@ class BlumTod:
                         break
                 print(self.garis)
                 self.countdown(self.DEFAULT_INTERVAL)
-            min_countdown = min(list_countdown)
-            now = int(time.time())
-            result = min_countdown - now
-            if result <= 0:
-                continue
 
-            self.countdown(result)
+
+            self.countdown(3650*8)
 
 
 if __name__ == "__main__":
