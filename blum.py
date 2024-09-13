@@ -79,6 +79,7 @@ class BlumTod:
         task_prog = task.get('type')
         start_task_url = f"https://earn-domain.blum.codes/api/v1/tasks/{task_id}/start"
         claim_task_url = f"https://earn-domain.blum.codes/api/v1/tasks/{task_id}/claim"
+        validate_task_url = f"https://earn-domain.blum.codes/api/v1/tasks/{task_id}/validate"
         if task_id in ignore_tasks:
             return
         if task_status == "READY_FOR_CLAIM":
@@ -115,6 +116,37 @@ class BlumTod:
             except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
                 self.log(f"{merah}Ошибка чтения ответа, повторяю")
                 return
+
+        if task_status == "READY_FOR_VERIFY" and task['validationType'] == 'KEYWORD':
+            try:
+                keywords = {
+                    'How to Analyze Crypto?': 'VALUE'
+                }
+
+                payload = {'keyword': keywords.get(task_title)}
+                time.sleep(3)
+                _res = self.ses.post(validate_task_url, json=payload, headers=headers, timeout=30)
+                _status = _res.json().get("status")
+
+                if _status == "READY_FOR_CLAIM":
+                    time.sleep(3)
+                    _res1 = self.http(claim_task_url, headers, "")
+                    _status1 = _res1.json().get("status")
+                    if _status1 == "FINISHED":
+                        self.log(
+                            f"{hijau}Выполнил задание {putih}{task_title} ")
+                        return
+            except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+                self.log(f"{merah}Ошибка чтения ответа, повторяю")
+                return
+
+
+
+
+
+
+
+
     def solve_task(self, access_token):
         url_task = "https://earn-domain.blum.codes/api/v1/tasks"
         headers = self.base_headers.copy()
@@ -147,11 +179,11 @@ class BlumTod:
                                 self.solve(task, access_token)
                             self.solve(t, access_token)
                             continue
-                        if t and t.get("tasks"):
-                            for task in t.get("tasks"):
+                        tasks_list = t.get("tasks")
+                        if tasks_list is not None:
+                            for task in tasks_list:
                                 self.solve(task, access_token)
-                        else:
-                            self.log(f"{kuning}Ошибка получения списка заданий")
+
 
 
 
