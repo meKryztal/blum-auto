@@ -11,7 +11,6 @@ from colorama import *
 from urllib.parse import parse_qs
 from base64 import b64decode
 
-
 init(autoreset=True)
 
 merah = Fore.LIGHTRED_EX
@@ -35,8 +34,8 @@ class BlumTod:
             "sec-fetch-site": "same-site",
             "sec-fetch-mode": "cors",
             "sec-fetch-dest": "empty",
-            #"Sec-Ch-Ua-Mobile": "?1",
-            #"Sec-Ch-Ua-Platform": '"Android"',
+            # "Sec-Ch-Ua-Mobile": "?1",
+            # "Sec-Ch-Ua-Platform": '"Android"',
             "referer": "https://telegram.blum.codes/",
             "accept-encoding": "gzip, deflate",
             "accept-language": "en,en-US;q=0.9",
@@ -62,72 +61,88 @@ class BlumTod:
 
         return access_token
 
-    def solve_task(self, access_token):
-        url_task = "https://game-domain.blum.codes/api/v1/tasks"
+    def solve(self, task: dict, access_token):
+        headers = self.base_headers.copy()
+        headers["authorization"] = f"Bearer {access_token}"
         ignore_tasks = [
             "39391eb2-f031-4954-bd8a-e7aecbb1f192",  # wallet connect
             "d3716390-ce5b-4c26-b82e-e45ea7eba258",  # invite task
-            "f382ec3f-089d-46de-b921-b92adfd3327a", # invite task
-            "220ee7b1-cca4-4af8-838a-2001cb42b813", # invite task
-            "5ecf9c15-d477-420b-badf-058537489524", # invite task
-            "c4e04f2e-bbf5-4e31-917b-8bfa7c4aa3aa" # invite task
+            "f382ec3f-089d-46de-b921-b92adfd3327a",  # invite task
+            "220ee7b1-cca4-4af8-838a-2001cb42b813",  # invite task
+            "5ecf9c15-d477-420b-badf-058537489524",  # invite task
+            "c4e04f2e-bbf5-4e31-917b-8bfa7c4aa3aa",  # invite task
         ]
+        task_id = task.get("id")
+        task_title = task.get("title")
+        task_status = task.get("status")
+        start_task_url = f"https://earn-domain.blum.codes/api/v1/tasks/{task_id}/start"
+        claim_task_url = f"https://earn-domain.blum.codes/api/v1/tasks/{task_id}/claim"
+        if task_id in ignore_tasks:
+            return
+        if task_status == "READY_FOR_CLAIM":
+            try:
+                _res = self.http(claim_task_url, headers, "")
+
+                _status = _res.json().get("status")
+
+                if _status == "FINISHED":
+                    self.log(
+                        f"{hijau}Выполнил задание {putih}{task_title} "
+                    )
+                    return
+            except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+                self.log(f"{merah}Ошибка чтения ответа, повторяю")
+                return
+        try:
+            _res = self.http(start_task_url, headers, "")
+            self.countdown(1)
+            _status = _res.json().get("status")
+            if _status == "STARTED":
+                _res = self.http(claim_task_url, headers, "")
+                _status = _res.json().get("status")
+                if _status == "FINISHED":
+                    self.log(
+                        f"{hijau}Выполнил задание {putih}{task_title} "
+                    )
+                    return
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
+            return
+    def solve_task(self, access_token):
+        url_task = "https://earn-domain.blum.codes/api/v1/tasks"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
-        restask = [] 
+
         try:
             res = self.http(url_task, headers)
             self.log(
                 f"{hijau}Проверяю задания "
             )
             restask = res.json()
+
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
             return
-            
+
         for tasks in restask:
             if isinstance(tasks, str):
                 self.log(f"{kuning}Ошибка получения списка заданий")
                 return
             for k in list(tasks.keys()):
+                if k != "tasks" and k != "subSections":
+                    continue
                 for t in tasks.get(k):
-                    for task in t.get("tasks"):
-
-                        task_id = task.get("id")
-                        task_title = task.get("title")
-                        task_status = task.get("status")
-                        start_task_url = f"https://game-domain.blum.codes/api/v1/tasks/{task_id}/start"
-                        claim_task_url = f"https://game-domain.blum.codes/api/v1/tasks/{task_id}/claim"
-                        if task_id in ignore_tasks:
+                    if isinstance(t, dict):
+                        subtasks = t.get("subTasks")
+                        if subtasks is not None:
+                            for task in subtasks:
+                                self.solve(task, access_token)
+                            self.solve(t, access_token)
                             continue
-                        if task_status == "READY_FOR_CLAIM":
-                            try:
-                                _res = self.http(claim_task_url, headers, "")
+                    for task in t.get("tasks"):
+                        self.solve(task, access_token)
 
-                                _status = _res.json().get("status")
 
-                                if _status == "FINISHED":
-                                    self.log(
-                                        f"{hijau}Выполнил задание {putih}{task_title} "
-                                    )
-                                    continue
-                            except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
-                                self.log(f"{merah}Ошибка чтения ответа, повторяю")
-
-                        try:
-                            _res = self.http(start_task_url, headers, "")
-                            self.countdown(1)
-                            _status = _res.json().get("status")
-                            if _status == "STARTED":
-                                _res = self.http(claim_task_url, headers, "")
-                                _status = _res.json().get("status")
-                                if _status == "FINISHED":
-                                    self.log(
-                                        f"{hijau}Выполнил задание {putih}{task_title} "
-                                    )
-                                    continue
-                        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
-                            self.log(f"{merah}Ошибка чтения ответа, повторяю")
 
     def set_proxy(self, proxy=None):
         self.ses = requests.Session()
@@ -146,6 +161,8 @@ class BlumTod:
 
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
+
+            return
     def get_balance(self, access_token, only_show_balance=False):
         url = "https://game-domain.blum.codes/api/v1/user/balance"
         headers = self.base_headers.copy()
@@ -182,7 +199,7 @@ class BlumTod:
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
 
-
+            return
     def start_farming(self, access_token):
         url = "https://game-domain.blum.codes/api/v1/farming/start"
         headers = self.base_headers.copy()
@@ -203,6 +220,7 @@ class BlumTod:
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
 
+            return
     def get_friend(self, access_token):
         url = "https://user-domain.blum.codes/api/v1/friends/balance"
         headers = self.base_headers.copy()
@@ -222,6 +240,8 @@ class BlumTod:
 
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
+            return
+
     def checkin(self, access_token):
         url = "https://game-domain.blum.codes/api/v1/daily-reward?offset=-420"
         headers = self.base_headers.copy()
@@ -241,6 +261,8 @@ class BlumTod:
 
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
+            return
+
     def playgame(self, access_token):
         url_play = "https://game-domain.blum.codes/api/v1/game/play"
         url_claim = "https://game-domain.blum.codes/api/v1/game/claim"
@@ -292,6 +314,8 @@ class BlumTod:
 
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
+            return
+
     def data_parsing(self, data):
         return {k: v[0] for k, v in parse_qs(data).items()}
 
@@ -314,7 +338,7 @@ class BlumTod:
         open("tokens.json", "w").write(json.dumps(tokens, indent=4))
 
     def is_expired(self, token):
-        if token is None or isinstance(token,bool):
+        if token is None or isinstance(token, bool):
             return True
         header, payload, sign = token.split(".")
         payload = b64decode(payload + "==").decode()
@@ -343,7 +367,7 @@ class BlumTod:
 
             self.AUTOGAME = input(f"{magenta}Играть в игру? {putih}(1 - Да, 2 - Нет)\n")
             self.DEFAULT_INTERVAL = int(input(f"{magenta}Перерыв между аккаунтами в секундах: \n"))
-            if self.AUTOGAME=='1':
+            if self.AUTOGAME == '1':
                 self.MIN_WIN = int(input(f"{magenta}Введите минимальное значение очков с игры: \n"))
                 self.MAX_WIN = int(input(f"{magenta}Введите максимальное значение очков с игры: \n"))
 
@@ -393,6 +417,8 @@ class BlumTod:
 
             except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
                 self.log(f"{merah}Ошибка чтения ответа, повторяю")
+
+
     def countdown(self, t):
         while t:
             menit, detik = divmod(t, 60)
@@ -471,7 +497,7 @@ class BlumTod:
                 if isinstance(res_bal, str):
                     res_bal = self.start_farming(access_token)
                 list_countdown.append(res_bal)
-                if self.AUTOGAME=='1':
+                if self.AUTOGAME == '1':
                     while True:
                         result = self.playgame(access_token)
                         if result:
