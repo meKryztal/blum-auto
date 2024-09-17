@@ -180,9 +180,10 @@ class BlumTod:
                             self.solve(t, access_token)
                             continue
                         tasks_list = t.get("tasks")
-                        if tasks_list is not None:
-                            for task in tasks_list:
-                                self.solve(task, access_token)
+                        if not tasks_list:
+                            continue
+                        for task in tasks_list:
+                            self.solve(task, access_token)
 
 
 
