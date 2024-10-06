@@ -52,15 +52,18 @@ class BlumTod:
         headers["Content-Length"] = str(len(data))
         url = "https://user-domain.blum.codes/api/v1/auth/provider/PROVIDER_TELEGRAM_MINI_APP"
         time.sleep(3)
-        res = self.http(url, headers, data)
-        token = res.json().get("token")
-        if token is None:
-            self.log(f"{merah}'token' не найден, вставьте его в data.txt !!!")
-            return 0
+        try:
+            res = self.http(url, headers, data)
+            token = res.json().get("token")
+            if token is None:
+                self.log(f"{merah}'token' не найден, вставьте его в data.txt !!!")
+                return 0
 
-        access_token = token.get("access")
+            access_token = token.get("access")
 
-        return access_token
+            return access_token
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
 
     def solve(self, task: dict, access_token):
         headers = self.base_headers.copy()
