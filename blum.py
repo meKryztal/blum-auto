@@ -123,7 +123,22 @@ class BlumTod:
         if task_status == "READY_FOR_VERIFY" and task['validationType'] == 'KEYWORD':
             try:
                 keywords = {
-                    'How to Analyze Crypto?': 'VALUE'
+                    		"How to Analyze Crypto?": "VALUE",
+                            "Forks Explained": "GO GET",
+                            "Secure your Crypto!": "BEST PROJECT EVER",
+                            "Navigating Crypto": "HEYBLUM",
+                            "What are Telegram Mini Apps?": "CRYPTOBLUM",
+                            "Say No to Rug Pull!": "SUPERBLUM",
+                            "Liquidity Pools Guide": "BLUMERSSS",
+                            "What Are AMMs?": "CRYPTOSMART",
+                            "$2.5M+ DOGS Airdrop": "HAPPYDOGS",
+                            "Doxxing? What's that?": "NODOXXING",
+                            "Pre-Market Trading?": "WOWBLUM",
+                            "Play track \u0026 type track name": "Blum - Big City Life",
+                            "How to Memecoin?": "MEMEBLUM",
+                            "Token Burning: How & Why?": "ONFIRE",
+                            "Bitcoin Rainbow Chart?": "SOBLUM",
+                            "Crypto Terms. Part 1": "BLUMEXPLORER"
                 }
 
                 payload = {'keyword': keywords.get(task_title)}
