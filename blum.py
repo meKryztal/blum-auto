@@ -387,6 +387,29 @@ class BlumTod:
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
             return
 
+    def dogs(self, access_token):
+        url = "https://game-domain.blum.codes/api/v2/game/eligibility/dogs_drop"
+        headers = self.base_headers.copy()
+        headers["Authorization"] = f"Bearer {access_token}"
+        try:
+            time.sleep(3)
+            res = self.http(url, headers)
+            dogs_drop = res.json()
+            if dogs_drop['eligible']:
+                self.log(f"{hijau}Eligible dogs drop")
+                return
+            else:
+                self.log(f"{merah}NOT eligible dogs drop")
+                return
+
+            self.log(f"{merah}Ошибка проверки eligible dogs drop")
+            return
+
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
+            self.log(f"{merah}Ошибка чтения ответа, повторяю")
+            return
+
+    
     def data_parsing(self, data):
         return {k: v[0] for k, v in parse_qs(data).items()}
 
@@ -558,6 +581,7 @@ class BlumTod:
                     break
                 if failed_fetch_token:
                     continue
+                self.dogs(access_token)
                 self.checkin(access_token)
                 self.get_friend(access_token)
                 self.solve_task(access_token)
