@@ -152,7 +152,7 @@ class BlumTod:
                     _status1 = _res1.json().get("status")
                     if _status1 == "FINISHED":
                         self.log(
-                            f"{hijau}Выполнил ютуб задание {putih}{task_title} ")
+                            f"{hijau}Выполнил задание {putih}{task_title} ")
                         return
             except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
                 self.log(f"{merah}Ошибка чтения ответа, повторяю")
