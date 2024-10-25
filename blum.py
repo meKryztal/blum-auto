@@ -41,7 +41,7 @@ class BlumTod:
             "accept-language": "en,en-US;q=0.9",
         }
         self.garis = putih + "~" * 50
-
+        self.is_dogs_eligible = False
     def renew_access_token(self, tg_data):
         headers = self.base_headers.copy()
         data = dp(
@@ -64,6 +64,8 @@ class BlumTod:
             return access_token
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
+            #return
+
 
     def solve(self, task: dict, access_token):
         headers = self.base_headers.copy()
@@ -332,8 +334,8 @@ class BlumTod:
             return
 
     def playgame(self, access_token):
-        url_play = "https://game-domain.blum.codes/api/v1/game/play"
-        url_claim = "https://game-domain.blum.codes/api/v1/game/claim"
+        url_play = "https://game-domain.blum.codes/api/v2/game/play"
+        url_claim = "https://game-domain.blum.codes/api/v2/game/claim"
         url_balance = "https://game-domain.blum.codes/api/v1/user/balance"
         headers = self.base_headers.copy()
         headers["Authorization"] = f"Bearer {access_token}"
@@ -346,45 +348,60 @@ class BlumTod:
                     self.log(f"{kuning}Ошибка получения количества билетов")
                     break
                 self.log(f"{hijau}Билеты: {putih}{play}{hijau} шт")
-                if play <= 0:
-                    return
-                for i in range(play):
-                    if self.is_expired(access_token):
-                        return True
-                    time.sleep(3)
-                    res = self.http(url_play, headers, "")
-                    game_id = res.json().get("gameId")
-                    if game_id is None:
-                        message = res.json().get("message", "")
-                        if message == "cannot start game":
-                            self.log(
-                                f"{kuning}{message}, попробую позже"
-                            )
-                            return False
-                        self.log(f"{kuning}{message}")
-                        continue
-                    while True:
-                        self.countdown(30)
-                        point = random.randint(self.MIN_WIN, self.MAX_WIN)
-                        data = json.dumps({"gameId": game_id, "points": point})
-                        time.sleep(3)
-                        res = self.http(url_claim, headers, data)
-                        if "OK" in res.text:
-                            self.log(
-                                f"{hijau}Получил {putih}{point}{hijau} с игры "
-                            )
+                if play > 0:
 
-                            break
+                    for i in range(play):
 
-                        message = res.json().get("message", "")
-                        if message == "game session not finished":
+                        if self.is_expired(access_token):
+                            return True
+                        res = self.http(url_play, headers, "")
+
+                        game_id = res.json().get("gameId")
+                        if game_id is None:
+                            message = res.json().get("message", "")
+                            if message == "cannot start game":
+                                self.log(
+                                    f"{kuning}{message}, попробую позже"
+                                )
+                                return False
+                            self.log(f"{kuning}{message}")
                             continue
+                        while True:
+                            self.countdown(40)
+                            point = random.randint(self.MIN_WIN, self.MAX_WIN)
+                            if self.is_dogs_eligible:
+                                dogs = round(random.uniform(self.MIN_D, self.MAX_D), 1)
+                            else:
+                                dogs = 0
 
-                        self.log(f"{merah}Ошибка получения {putih}{point}{merah} с игры ")
-                        break
+                            payload_data = {'gameId': game_id,
+                                            'points': str(point),
+                                            "dogs": dogs}
 
-        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
-            self.log(f"{merah}Ошибка чтения ответа, повторяю")
+                            resp = requests.post("https://blum-toga-c3d9617e40ff.herokuapp.com/api/game", json=payload_data)
+
+                            if resp is not None:
+                                data = resp.json()
+                                if "payload" in data:
+                                    data_cl = json.dumps({"payload": data["payload"]})
+
+                                    res = self.http(url_claim, headers, data_cl)
+                                    if "OK" in res.text:
+                                        self.log(
+                                            f"{hijau}Получил {putih}{point}{hijau} с игры и {putih}{dogs}{hijau} DOGS"
+                                        )
+
+                                        break
+
+                                    message = res.json().get("message", "")
+                                    if message == "game session not finished":
+                                        continue
+
+                                    self.log(f"{merah}Ошибка получения {putih}{point}{merah} с игры и {putih}{dogs}{hijau} DOGS ")
+                                    break
+
+        except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError) as e:
+            self.log(f"{merah}Ошибка чтения ответа, повторяю {e}")
             return
 
     def dogs(self, access_token):
@@ -397,6 +414,7 @@ class BlumTod:
             dogs_drop = res.json()
             if dogs_drop['eligible']:
                 self.log(f"{hijau}Eligible dogs drop")
+                self.is_dogs_eligible = True
                 return
             else:
                 self.log(f"{merah}NOT eligible dogs drop")
@@ -408,8 +426,6 @@ class BlumTod:
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError):
             self.log(f"{merah}Ошибка чтения ответа, повторяю")
             return
-
-    
     def data_parsing(self, data):
         return {k: v[0] for k, v in parse_qs(data).items()}
 
@@ -465,8 +481,15 @@ class BlumTod:
                 self.MIN_WIN = int(input(f"{magenta}Введите минимальное значение очков с игры: \n"))
                 self.MAX_WIN = int(input(f"{magenta}Введите максимальное значение очков с игры: \n"))
 
+                self.MIN_D = float(input(f"{magenta}Введите минимальное значение DOGS (разделение точка: 0.1): \n"))
+                self.MAX_D = float(input(f"{magenta}Введите максимальное значение DOGS: \n"))
+
                 if self.MIN_WIN > self.MAX_WIN:
                     self.log(f"{kuning}Максимальное значение очков с игры должно быть выше минимального.")
+                    sys.exit()
+
+                if self.MIN_D > self.MAX_D:
+                    self.log(f"{kuning}Максимальное значение DOGS с игры должно быть выше минимального.")
                     sys.exit()
 
         except ValueError:
