@@ -3,6 +3,8 @@ import sys
 import time
 import json
 import random
+from asyncio import create_subprocess_exec
+
 import requests
 import argparse
 from json import dumps as dp
@@ -10,6 +12,7 @@ from datetime import datetime
 from colorama import *
 from urllib.parse import parse_qs
 from base64 import b64decode
+import subprocess
 
 init(autoreset=True)
 
@@ -367,38 +370,44 @@ class BlumTod:
                             self.log(f"{kuning}{message}")
                             continue
                         while True:
-                            self.countdown(40)
+                            self.countdown(30)
                             point = random.randint(self.MIN_WIN, self.MAX_WIN)
-                            if self.is_dogs_eligible:
-                                dogs = round(random.uniform(self.MIN_D, self.MAX_D), 1)
-                            else:
-                                dogs = 0
+                            #if self.is_dogs_eligible:
+                            #    dogs = round(random.uniform(self.MIN_D, self.MAX_D), 1)
+                            #else:
+                            #    dogs = 0
 
-                            payload_data = {'gameId': game_id,
-                                            'points': str(point),
-                                            "dogs": dogs}
+                            #payload_data = {'gameId': game_id,
+                            #              'points': str(point),
+                            #                #"dogs": dogs
+                            #                }
+                            process = subprocess.run(
+                                ['node', 'blum.mjs', game_id, str(point)],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True
+                            )
 
-                            resp = requests.post("https://blum-toga-c3d9617e40ff.herokuapp.com/api/game", json=payload_data)
+                            payload = process.stdout.strip()
+                            data_cl = json.dumps({"payload": payload})
 
-                            if resp is not None:
-                                data = resp.json()
-                                if "payload" in data:
-                                    data_cl = json.dumps({"payload": data["payload"]})
+                            res = self.http(url_claim, headers, data_cl)
+                            if "OK" in res.text:
+                                self.log(
+                                    f"{hijau}Получил {putih}{point}{hijau} с игры"
+                                )
 
-                                    res = self.http(url_claim, headers, data_cl)
-                                    if "OK" in res.text:
-                                        self.log(
-                                            f"{hijau}Получил {putih}{point}{hijau} с игры и {putih}{dogs}{hijau} DOGS"
-                                        )
+                                break
 
-                                        break
+                            message = res.json().get("message", "")
+                            if message == "game session not finished":
+                                continue
 
-                                    message = res.json().get("message", "")
-                                    if message == "game session not finished":
-                                        continue
+                            self.log(f"{merah}Ошибка получения {putih}{point}{merah} с игры ")
+                            break
+                else:
+                    return
 
-                                    self.log(f"{merah}Ошибка получения {putih}{point}{merah} с игры и {putih}{dogs}{hijau} DOGS ")
-                                    break
 
         except (requests.exceptions.JSONDecodeError, json.decoder.JSONDecodeError) as e:
             self.log(f"{merah}Ошибка чтения ответа, повторяю {e}")
@@ -481,16 +490,16 @@ class BlumTod:
                 self.MIN_WIN = int(input(f"{magenta}Введите минимальное значение очков с игры: \n"))
                 self.MAX_WIN = int(input(f"{magenta}Введите максимальное значение очков с игры: \n"))
 
-                self.MIN_D = float(input(f"{magenta}Введите минимальное значение DOGS (разделение точка: 0.1): \n"))
-                self.MAX_D = float(input(f"{magenta}Введите максимальное значение DOGS: \n"))
+                #self.MIN_D = float(input(f"{magenta}Введите минимальное значение DOGS (разделение точка: 0.1): \n"))
+                #self.MAX_D = float(input(f"{magenta}Введите максимальное значение DOGS: \n"))
 
                 if self.MIN_WIN > self.MAX_WIN:
                     self.log(f"{kuning}Максимальное значение очков с игры должно быть выше минимального.")
                     sys.exit()
 
-                if self.MIN_D > self.MAX_D:
-                    self.log(f"{kuning}Максимальное значение DOGS с игры должно быть выше минимального.")
-                    sys.exit()
+                #if self.MIN_D > self.MAX_D:
+                    #self.log(f"{kuning}Максимальное значение DOGS с игры должно быть выше минимального.")
+                   # sys.exit()
 
         except ValueError:
             self.log(f"{merah}Ошибка ввода данных. Убедитесь, что введены числовые значения там, где это требуется.")
